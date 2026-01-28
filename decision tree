@@ -1,197 +1,215 @@
- (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/decision_tree_classification.py b/decision_tree_classification.py
-new file mode 100644
-index 0000000000000000000000000000000000000000..e552bbaf15de2e63581ce058bc541838f0c665aa
---- /dev/null
-+++ b/decision_tree_classification.py
-@@ -0,0 +1,187 @@
-+"""Decision tree classification for the 'buys_computer' dataset."""
-+
-+from __future__ import annotations
-+
-+from dataclasses import dataclass
-+
-+import pandas as pd
-+from sklearn.compose import ColumnTransformer
-+from sklearn.metrics import accuracy_score, classification_report
-+from sklearn.model_selection import train_test_split
-+from sklearn.pipeline import Pipeline
-+from sklearn.preprocessing import OneHotEncoder
-+from sklearn.tree import DecisionTreeClassifier, export_text
-+
-+
-+@dataclass(frozen=True)
-+class TrainingResult:
-+    model: Pipeline
-+    accuracy: float
-+    report: str
-+
-+
-+def build_dataset() -> pd.DataFrame:
-+    """Return the classic 'buys_computer' dataset as a DataFrame."""
-+    return pd.DataFrame(
-+        [
-+            {
-+                "age": "youth",
-+                "income": "high",
-+                "student": "no",
-+                "credit_rating": "fair",
-+                "buys_computer": "no",
-+            },
-+            {
-+                "age": "youth",
-+                "income": "high",
-+                "student": "no",
-+                "credit_rating": "excellent",
-+                "buys_computer": "no",
-+            },
-+            {
-+                "age": "middle_aged",
-+                "income": "high",
-+                "student": "no",
-+                "credit_rating": "fair",
-+                "buys_computer": "yes",
-+            },
-+            {
-+                "age": "senior",
-+                "income": "medium",
-+                "student": "no",
-+                "credit_rating": "fair",
-+                "buys_computer": "yes",
-+            },
-+            {
-+                "age": "senior",
-+                "income": "low",
-+                "student": "yes",
-+                "credit_rating": "fair",
-+                "buys_computer": "yes",
-+            },
-+            {
-+                "age": "senior",
-+                "income": "low",
-+                "student": "yes",
-+                "credit_rating": "excellent",
-+                "buys_computer": "no",
-+            },
-+            {
-+                "age": "middle_aged",
-+                "income": "low",
-+                "student": "yes",
-+                "credit_rating": "excellent",
-+                "buys_computer": "yes",
-+            },
-+            {
-+                "age": "youth",
-+                "income": "medium",
-+                "student": "no",
-+                "credit_rating": "fair",
-+                "buys_computer": "no",
-+            },
-+            {
-+                "age": "youth",
-+                "income": "low",
-+                "student": "yes",
-+                "credit_rating": "fair",
-+                "buys_computer": "yes",
-+            },
-+            {
-+                "age": "senior",
-+                "income": "medium",
-+                "student": "yes",
-+                "credit_rating": "fair",
-+                "buys_computer": "yes",
-+            },
-+            {
-+                "age": "youth",
-+                "income": "medium",
-+                "student": "yes",
-+                "credit_rating": "excellent",
-+                "buys_computer": "yes",
-+            },
-+            {
-+                "age": "middle_aged",
-+                "income": "medium",
-+                "student": "no",
-+                "credit_rating": "excellent",
-+                "buys_computer": "yes",
-+            },
-+            {
-+                "age": "middle_aged",
-+                "income": "high",
-+                "student": "yes",
-+                "credit_rating": "fair",
-+                "buys_computer": "yes",
-+            },
-+            {
-+                "age": "senior",
-+                "income": "medium",
-+                "student": "no",
-+                "credit_rating": "excellent",
-+                "buys_computer": "no",
-+            },
-+        ]
-+    )
-+
-+
-+def train_decision_tree(dataset: pd.DataFrame) -> TrainingResult:
-+    """Train a decision tree on the dataset and return evaluation metrics."""
-+    features = dataset.drop(columns=["buys_computer"])
-+    target = dataset["buys_computer"]
-+
-+    categorical_columns = features.columns.tolist()
-+    preprocessor = ColumnTransformer(
-+        [("categorical", OneHotEncoder(handle_unknown="ignore"), categorical_columns)]
-+    )
-+
-+    classifier = DecisionTreeClassifier(random_state=42)
-+    model = Pipeline([("preprocess", preprocessor), ("classifier", classifier)])
-+
-+    x_train, x_test, y_train, y_test = train_test_split(
-+        features, target, test_size=0.3, random_state=42, stratify=target
-+    )
-+    model.fit(x_train, y_train)
-+
-+    predictions = model.predict(x_test)
-+    accuracy = accuracy_score(y_test, predictions)
-+    report = classification_report(y_test, predictions)
-+    return TrainingResult(model=model, accuracy=accuracy, report=report)
-+
-+
-+def print_tree(model: Pipeline, feature_names: list[str]) -> None:
-+    """Print a text representation of the fitted decision tree."""
-+    encoder = model.named_steps["preprocess"].named_transformers_["categorical"]
-+    encoded_features = encoder.get_feature_names_out(feature_names)
-+    tree = model.named_steps["classifier"]
-+    print(export_text(tree, feature_names=list(encoded_features)))
-+
-+
-+def main() -> None:
-+    dataset = build_dataset()
-+    result = train_decision_tree(dataset)
-+
-+    print("Dataset preview:")
-+    print(dataset.head())
-+    print("\nDecision tree structure:")
-+    print_tree(result.model, dataset.drop(columns=["buys_computer"]).columns.tolist())
-+    print("\nAccuracy:", f"{result.accuracy:.2f}")
-+    print("\nClassification report:\n", result.report)
-+
-+    sample = pd.DataFrame(
-+        [
-+            {
-+                "age": "youth",
-+                "income": "medium",
-+                "student": "yes",
-+                "credit_rating": "fair",
-+            }
-+        ]
-+    )
-+    prediction = result.model.predict(sample)[0]
-+    print("\nSample prediction:", prediction)
-+
-+
-+if __name__ == "__main__":
-+    main()
- 
-EOF
-)
+"""Decision tree classification for the 'buys_computer' dataset."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+import pandas as pd
+from sklearn.compose import ColumnTransformer
+from sklearn.metrics import accuracy_score, classification_report
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.tree import DecisionTreeClassifier, export_text, plot_tree
+
+
+@dataclass(frozen=True)
+class TrainingResult:
+    model: Pipeline
+    accuracy: float
+    report: str
+
+
+def build_dataset() -> pd.DataFrame:
+    """Return the classic 'buys_computer' dataset as a DataFrame."""
+    return pd.DataFrame(
+        [
+            {
+                "age": "youth",
+                "income": "high",
+                "student": "no",
+                "credit_rating": "fair",
+                "buys_computer": "no",
+            },
+            {
+                "age": "youth",
+                "income": "high",
+                "student": "no",
+                "credit_rating": "excellent",
+                "buys_computer": "no",
+            },
+            {
+                "age": "middle_aged",
+                "income": "high",
+                "student": "no",
+                "credit_rating": "fair",
+                "buys_computer": "yes",
+            },
+            {
+                "age": "senior",
+                "income": "medium",
+                "student": "no",
+                "credit_rating": "fair",
+                "buys_computer": "yes",
+            },
+            {
+                "age": "senior",
+                "income": "low",
+                "student": "yes",
+                "credit_rating": "fair",
+                "buys_computer": "yes",
+            },
+            {
+                "age": "senior",
+                "income": "low",
+                "student": "yes",
+                "credit_rating": "excellent",
+                "buys_computer": "no",
+            },
+            {
+                "age": "middle_aged",
+                "income": "low",
+                "student": "yes",
+                "credit_rating": "excellent",
+                "buys_computer": "yes",
+            },
+            {
+                "age": "youth",
+                "income": "medium",
+                "student": "no",
+                "credit_rating": "fair",
+                "buys_computer": "no",
+            },
+            {
+                "age": "youth",
+                "income": "low",
+                "student": "yes",
+                "credit_rating": "fair",
+                "buys_computer": "yes",
+            },
+            {
+                "age": "senior",
+                "income": "medium",
+                "student": "yes",
+                "credit_rating": "fair",
+                "buys_computer": "yes",
+            },
+            {
+                "age": "youth",
+                "income": "medium",
+                "student": "yes",
+                "credit_rating": "excellent",
+                "buys_computer": "yes",
+            },
+            {
+                "age": "middle_aged",
+                "income": "medium",
+                "student": "no",
+                "credit_rating": "excellent",
+                "buys_computer": "yes",
+            },
+            {
+                "age": "middle_aged",
+                "income": "high",
+                "student": "yes",
+                "credit_rating": "fair",
+                "buys_computer": "yes",
+            },
+            {
+                "age": "senior",
+                "income": "medium",
+                "student": "no",
+                "credit_rating": "excellent",
+                "buys_computer": "no",
+            },
+        ]
+    )
+
+
+def train_decision_tree(dataset: pd.DataFrame) -> TrainingResult:
+    """Train a decision tree on the dataset and return evaluation metrics."""
+    features = dataset.drop(columns=["buys_computer"])
+    target = dataset["buys_computer"]
+
+    categorical_columns = features.columns.tolist()
+    preprocessor = ColumnTransformer(
+        [("categorical", OneHotEncoder(handle_unknown="ignore"), categorical_columns)]
+    )
+
+    classifier = DecisionTreeClassifier(random_state=42)
+    model = Pipeline([("preprocess", preprocessor), ("classifier", classifier)])
+
+    x_train, x_test, y_train, y_test = train_test_split(
+        features, target, test_size=0.3, random_state=42, stratify=target
+    )
+    model.fit(x_train, y_train)
+
+    predictions = model.predict(x_test)
+    accuracy = accuracy_score(y_test, predictions)
+    report = classification_report(y_test, predictions)
+    return TrainingResult(model=model, accuracy=accuracy, report=report)
+
+
+def print_tree(model: Pipeline, feature_names: list[str]) -> None:
+    """Print a text representation of the fitted decision tree."""
+    encoder = model.named_steps["preprocess"].named_transformers_["categorical"]
+    encoded_features = encoder.get_feature_names_out(feature_names)
+    tree = model.named_steps["classifier"]
+    print(export_text(tree, feature_names=list(encoded_features)))
+
+
+def visualize_tree(model: Pipeline, feature_names: list[str], output_path: str) -> None:
+    """Render and save a visualization of the fitted decision tree."""
+    import matplotlib.pyplot as plt
+
+    encoder = model.named_steps["preprocess"].named_transformers_["categorical"]
+    encoded_features = encoder.get_feature_names_out(feature_names)
+    tree = model.named_steps["classifier"]
+
+    plt.figure(figsize=(18, 10))
+    plot_tree(
+        tree,
+        feature_names=list(encoded_features),
+        class_names=tree.classes_,
+        filled=True,
+        rounded=True,
+        fontsize=10,
+    )
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=200)
+    plt.close()
+
+
+def main() -> None:
+    dataset = build_dataset()
+    result = train_decision_tree(dataset)
+
+    print("Dataset preview:")
+    print(dataset.head())
+    print("\nDecision tree structure:")
+    print_tree(result.model, dataset.drop(columns=["buys_computer"]).columns.tolist())
+    visualize_tree(
+        result.model,
+        dataset.drop(columns=["buys_computer"]).columns.tolist(),
+        "decision_tree.png",
+    )
+    print("\nDecision tree visualization saved to decision_tree.png")
+    print("\nAccuracy:", f"{result.accuracy:.2f}")
+    print("\nClassification report:\n", result.report)
+
+    sample = pd.DataFrame(
+        [
+            {
+                "age": "youth",
+                "income": "medium",
+                "student": "yes",
+                "credit_rating": "fair",
+            }
+        ]
+    )
+    prediction = result.model.predict(sample)[0]
+    print("\nSample prediction:", prediction)
+
+
+if __name__ == "__main__":
+    main()
